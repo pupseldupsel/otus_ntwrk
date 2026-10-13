@@ -1,0 +1,43 @@
+hostname R18
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.20.255.18 255.255.255.255
+ ipv6 address 2001:db8:2042:ffff::18/128
+!
+interface Ethernet0/0
+ description to R16
+ ip address 10.20.0.2 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:2042:1618::18/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R17
+ ip address 10.20.0.6 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:2042:1718::18/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R24
+ ip address 52.0.1.2 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:520:1824::18/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R26
+ ip address 52.0.1.6 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:520:1826::18/64
+ no shutdown
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
