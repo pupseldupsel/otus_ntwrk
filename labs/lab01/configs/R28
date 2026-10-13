@@ -6,7 +6,7 @@ ipv6 unicast-routing
 interface Loopback0
  description Management / Router-ID
  ip address 10.30.255.28 255.255.255.255
- ipv6 address 2001:db8:520:28ff::28/128
+ ipv6 address 2001:db8:1001:28ff::28/128
 !
 interface Ethernet0/0
  description to R26
@@ -32,21 +32,21 @@ interface Ethernet0/2.30
  encapsulation dot1Q 30
  ip address 10.30.30.1 255.255.255.0
  ipv6 address fe80::28 link-local
- ipv6 address 2001:db8:520:2830::28/64
+ ipv6 address 2001:db8:1001:2830::28/64
 !
 interface Ethernet0/2.31
  description VLAN31 USERS-VPC31
  encapsulation dot1Q 31
  ip address 10.30.31.1 255.255.255.0
  ipv6 address fe80::28 link-local
- ipv6 address 2001:db8:520:2831::28/64
+ ipv6 address 2001:db8:1001:2831::28/64
 !
 interface Ethernet0/2.99
  description VLAN99 MGMT
  encapsulation dot1Q 99
  ip address 10.30.99.1 255.255.255.0
  ipv6 address fe80::28 link-local
- ipv6 address 2001:db8:520:2899::28/64
+ ipv6 address 2001:db8:1001:2899::28/64
 !
 line con 0
  logging synchronous
