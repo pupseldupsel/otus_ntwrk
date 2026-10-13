@@ -1,0 +1,65 @@
+hostname R17
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.20.255.17 255.255.255.255
+ ipv6 address 2001:db8:2042:ffff::17/128
+!
+interface Ethernet0/0
+ description trunk to SW9 (VLAN 90,99)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/0.90
+ description VLAN90 USERS-VPC
+ encapsulation dot1Q 90
+ ip address 10.20.90.3 255.255.255.0
+ ipv6 address fe80::17 link-local
+ ipv6 address 2001:db8:2042:90::17/64
+ standby version 2
+ standby 90 ip 10.20.90.1
+ standby 90 priority 100
+ standby 90 preempt
+!
+interface Ethernet0/0.99
+ description VLAN99 MGMT
+ encapsulation dot1Q 99
+ ip address 10.20.99.3 255.255.255.0
+ ipv6 address fe80::17 link-local
+ ipv6 address 2001:db8:2042:99::17/64
+ standby version 2
+ standby 99 ip 10.20.99.1
+ standby 99 priority 100
+ standby 99 preempt
+!
+interface Ethernet0/1
+ description to R18
+ ip address 10.20.0.5 255.255.255.252
+ ipv6 address fe80::17 link-local
+ ipv6 address 2001:db8:2042:1718::17/64
+ no shutdown
+!
+interface Ethernet0/2
+ description trunk to SW10 (VLAN 80)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/2.80
+ description VLAN80 USERS-VPC8
+ encapsulation dot1Q 80
+ ip address 10.20.80.3 255.255.255.0
+ ipv6 address fe80::17 link-local
+ ipv6 address 2001:db8:2042:80::17/64
+ standby version 2
+ standby 80 ip 10.20.80.1
+ standby 80 priority 100
+ standby 80 preempt
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

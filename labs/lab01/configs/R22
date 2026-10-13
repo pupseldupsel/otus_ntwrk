@@ -1,0 +1,36 @@
+hostname R22
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 101.0.255.22 255.255.255.255
+ ipv6 address 2001:db8:101:ffff::22/128
+!
+interface Ethernet0/0
+ description to R14
+ ip address 101.0.0.1 255.255.255.252
+ ipv6 address fe80::22 link-local
+ ipv6 address 2001:db8:101:1422::22/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R21
+ ip address 101.0.0.5 255.255.255.252
+ ipv6 address fe80::22 link-local
+ ipv6 address 2001:db8:101:2122::22/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R23
+ ip address 101.0.0.9 255.255.255.252
+ ipv6 address fe80::22 link-local
+ ipv6 address 2001:db8:101:2223::22/64
+ no shutdown
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
