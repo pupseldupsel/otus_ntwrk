@@ -1,6 +1,7 @@
 hostname SW5
 !
 no ip domain-lookup
+vtp mode transparent
 !
 spanning-tree mode rapid-pvst
 spanning-tree vlan 70 root primary

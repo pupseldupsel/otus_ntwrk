@@ -151,6 +151,8 @@ IPv6 на VPC задан статически, связность внутри �
 
 **Защита от broadcast-штормов.** В офисах Москва и С.-Петербург коммутаторы соединены с избыточностью, поэтому на всех коммутаторах включён Rapid PVST+. Порты к VPC настроены как `portfast edge` с `bpduguard`, неиспользуемые порты выключены и переведены в VLAN 999.
 
+**VTP.** Коммутаторы переведены в `vtp mode transparent`: VLAN задаются локально на каждом коммутаторе и хранятся в конфигурации. В режиме VTP server, который включён по умолчанию, строки `vlan` из startup-config при загрузке игнорируются, и VLAN не создаются.
+
 **Оптимизация линков:**
 
 - Два параллельных линка между коммутаторами распределения (SW4-SW5 в Москве, SW9-SW10 в С.-Петербурге) объединены в `Port-channel1` по LACP. Оба линка передают трафик, а STP видит их как один.
@@ -202,6 +204,8 @@ interface Ethernet0/0.10
 STP и EtherChannel на SW4:
 
 ```
+vtp mode transparent
+!
 spanning-tree mode rapid-pvst
 spanning-tree vlan 10,99 root primary
 spanning-tree vlan 70 root secondary
