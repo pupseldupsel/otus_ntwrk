@@ -232,4 +232,32 @@ VPC30> trace 52.0.255.26
 
 #### Лабытнанги
 
-<!-- TODO: R27 show ip route 0.0.0.0, ping 52.0.255.25 source Loopback0 -->
+```
+R27#show ip route 0.0.0.0
+Routing entry for 0.0.0.0/0, supernet
+  Known via "static", distance 1, metric 0, candidate default path
+  Routing Descriptor Blocks:
+  * 52.0.1.9
+      Route metric is 0, traffic share count is 1
+
+R27#ping 52.0.255.25 source Loopback0
+Packet sent with a source address of 10.40.255.27
+!!!!!
+Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/1 ms
+```
+
+#### IPv6 на R28
+
+```
+R28#show ipv6 route ::/0
+Routing entry for ::/0
+  Known via "static", distance 1, metric 0
+  Route count is 2/2, share count 0
+  Routing paths:
+    2001:DB8:520:2528::25
+      Last updated 00:14:27 ago
+    2001:DB8:520:2628::26
+      Last updated 00:02:48 ago
+```
+
+Маршрут через R26 обновился 2:48 назад: он ушёл из таблицы при выключении `Ethernet0/0` и вернулся после `no shutdown`.
