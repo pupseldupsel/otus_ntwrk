@@ -6,7 +6,7 @@ ipv6 unicast-routing
 interface Loopback0
  description Management / Router-ID
  ip address 10.40.255.27 255.255.255.255
- ipv6 address 2001:db8:520:27ff::27/128
+ ipv6 address 2001:db8:1001:27ff::27/128
 !
 interface Ethernet0/0
  description to R25
