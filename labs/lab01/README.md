@@ -249,43 +249,127 @@ ip 2001:db8:1001:10::101/64
 
 ### 6. Проверка
 
-<!-- Вывод команд вставляется со стенда. -->
+На этом этапе маршрутизация не настроена, поэтому проверяется работа L2 и связность в пределах сегментов: VLAN и STP на коммутаторах, EtherChannel, HSRP, доступность шлюза с VPC и адреса на p2p-линках.
 
-На этом этапе маршрутизация не настроена, поэтому проверяется связность в пределах сегментов: VPC до шлюза, коммутаторы до шлюза в VLAN 99, роутеры до соседей по p2p-линкам.
+#### VLAN и корень STP на SW4
 
-Состояние HSRP на R12:
-
-```
-R12# show standby brief
-```
-
-Корень STP и роли портов на SW4:
+SW4 является корнем для VLAN 10, все его порты в этом VLAN назначенные (Desg) и передают трафик.
 
 ```
-SW4# show spanning-tree vlan 10
-SW4# show spanning-tree vlan 70
+SW4#show vlan brief
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active
+10   USERS-VPC1                       active
+70   USERS-VPC7                       active
+99   MGMT                             active
+999  NATIVE-UNUSED                    active    Et1/2, Et1/3
+
+SW4#show spanning-tree vlan 10
+
+VLAN0010
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    24586
+             Address     aabb.cc00.4000
+             This bridge is the root
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    24586  (priority 24576 sys-id-ext 10)
+             Address     aabb.cc00.4000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Et0/0               Desg FWD 100       128.1    Shr
+Et0/1               Desg FWD 100       128.2    Shr
+Et1/0               Desg FWD 100       128.5    Shr
+Po1                 Desg FWD 56        128.65   Shr
 ```
 
-EtherChannel на SW4:
+#### EtherChannel между SW4 и SW5
+
+Оба линка собраны в Po1 по LACP (флаг `P`), канал работает как L2 (`SU`).
 
 ```
-SW4# show etherchannel summary
+SW4#show etherchannel summary
+Number of channel-groups in use: 1
+Number of aggregators:           1
+
+Group  Port-channel  Protocol    Ports
+------+-------------+-----------+-----------------------------------------------
+1      Po1(SU)         LACP      Et0/2(P)    Et0/3(P)
 ```
 
-Связность VPC1 со шлюзом и управление коммутаторами:
+#### Транки к роутерам на SW5
+
+На портах к роутерам разрешены только VLAN своего сабинтерфейса.
+
+```
+SW5#show interfaces trunk
+
+Port        Mode             Encapsulation  Status        Native vlan
+Et0/0       on               802.1q         trunking      999
+Et0/1       on               802.1q         trunking      999
+Et1/0       on               802.1q         trunking      999
+Et1/1       on               802.1q         trunking      999
+Po1         on               802.1q         trunking      999
+
+Port        Vlans allowed on trunk
+Et0/0       10,70,99
+Et0/1       10,70,99
+Et1/0       10,99
+Et1/1       70
+Po1         10,70,99
+```
+
+#### HSRP
+
+R12 активный шлюз во всех VLAN Москвы, R13 резервный.
+
+```
+R13#show standby brief
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State   Active          Standby         Virtual IP
+Et0/0.10    10   100 P Standby 10.10.10.2      local           10.10.10.1
+Et0/0.99    99   100 P Standby 10.10.99.2      local           10.10.99.1
+Et0/1.70    70   100 P Standby 10.10.70.2      local           10.10.70.1
+```
+
+#### Связность VPC1 со шлюзом
 
 ```
 VPC1> ping 10.10.10.1
+
+84 bytes from 10.10.10.1 icmp_seq=1 ttl=255 time=0.566 ms
+84 bytes from 10.10.10.1 icmp_seq=2 ttl=255 time=0.618 ms
+84 bytes from 10.10.10.1 icmp_seq=3 ttl=255 time=0.660 ms
+
 VPC1> ping 2001:db8:1001:10::12
-R12# ping 10.10.99.30
+
+2001:db8:1001:10::12 icmp6_seq=1 ttl=64 time=1.001 ms
+2001:db8:1001:10::12 icmp6_seq=2 ttl=64 time=0.558 ms
 ```
 
-Адреса на интерфейсах роутеров:
+#### Адреса на интерфейсах роутеров
+
+Все интерфейсы R14 подняты, линк к провайдеру Киторн работает (первый пакет потерян на время ARP-разрешения).
 
 ```
-R14# show ip interface brief
-R14# show ipv6 interface brief
-R14# ping 101.0.0.1
+R14#show ip interface brief
+Interface                  IP-Address      OK? Method Status                Protocol
+Ethernet0/0                10.10.0.2       YES TFTP   up                    up
+Ethernet0/1                10.10.0.6       YES TFTP   up                    up
+Ethernet0/2                101.0.0.2       YES TFTP   up                    up
+Ethernet0/3                10.10.0.17      YES TFTP   up                    up
+Loopback0                  10.10.255.14    YES TFTP   up                    up
+
+R14#ping 101.0.0.1
+Sending 5, 100-byte ICMP Echos to 101.0.0.1, timeout is 2 seconds:
+.!!!!
+Success rate is 80 percent (4/5), round-trip min/avg/max = 1/1/1 ms
 ```
 
 Полные конфигурации всех устройств приведены [здесь](configs/).
