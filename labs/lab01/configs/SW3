@@ -1,6 +1,7 @@
 hostname SW3
 !
 no ip domain-lookup
+vtp mode transparent
 !
 spanning-tree mode rapid-pvst
 !

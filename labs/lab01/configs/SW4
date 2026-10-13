@@ -1,6 +1,7 @@
 hostname SW4
 !
 no ip domain-lookup
+vtp mode transparent
 !
 spanning-tree mode rapid-pvst
 spanning-tree vlan 10,99 root primary
