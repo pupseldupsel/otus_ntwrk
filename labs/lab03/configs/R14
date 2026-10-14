@@ -1,0 +1,81 @@
+hostname R14
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.10.255.14 255.255.255.255
+ ipv6 address 2001:db8:1001:ffff::14/128
+!
+interface Ethernet0/0
+ description to R12
+ ip address 10.10.0.2 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1214::14/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R13
+ ip address 10.10.0.6 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1314::14/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R22
+ ip address 101.0.0.2 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:101:1422::14/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R19
+ ip address 10.10.0.17 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1419::14/64
+ no shutdown
+!
+! ---------- lab03: OSPF ----------
+router ospf 1
+ router-id 10.10.255.14
+ passive-interface Loopback0
+ area 101 stub no-summary
+ default-information originate
+!
+ipv6 router ospf 1
+ router-id 10.10.255.14
+ passive-interface Loopback0
+ area 101 stub no-summary
+ default-information originate
+!
+interface Ethernet0/0
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Ethernet0/1
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Loopback0
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+!
+interface Ethernet0/3
+ ip ospf 1 area 101
+ ipv6 ospf 1 area 101
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+ip route 0.0.0.0 0.0.0.0 101.0.0.1
+ipv6 route ::/0 2001:db8:101:1422::22
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
