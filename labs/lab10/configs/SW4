@@ -103,6 +103,9 @@ ntp source Vlan99
 ntp server 10.10.255.12 prefer
 ntp server 10.10.255.13
 !
+! ---------- lab10: mgmt default route ----------
+ip route 0.0.0.0 0.0.0.0 10.10.99.1
+!
 line con 0
  logging synchronous
  exec-timeout 0 0

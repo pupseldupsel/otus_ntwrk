@@ -10,7 +10,7 @@
 7. [iBGP и Route Reflector (Москва, Триада)](lab07/)
 8. [BGP. Фильтрация](lab08/)
 9. [BGP для IPv6 unicast](lab09/)
-10. NAT, DHCP, NTP
+10. [NAT, DHCP, NTP](lab10/)
 11. VPN: GRE и DMVPN
 12. IPSec over GRE и DMVPN, PKI
 13. MPLS: BGP free core
