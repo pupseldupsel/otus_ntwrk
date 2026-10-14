@@ -1,0 +1,173 @@
+hostname R18
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.20.255.18 255.255.255.255
+ ipv6 address 2001:db8:2042:ffff::18/128
+!
+interface Ethernet0/0
+ description to R16
+ ip address 10.20.0.2 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:2042:1618::18/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R17
+ ip address 10.20.0.6 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:2042:1718::18/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R24
+ ip address 52.0.1.2 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:520:1824::18/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R26
+ ip address 52.0.1.6 255.255.255.252
+ ipv6 address fe80::18 link-local
+ ipv6 address 2001:db8:520:1826::18/64
+ no shutdown
+!
+! ---------- lab05: EIGRP named-mode ----------
+ip route 0.0.0.0 0.0.0.0 52.0.1.1
+ip route 0.0.0.0 0.0.0.0 52.0.1.5
+ipv6 route ::/0 2001:db8:520:1824::24
+ipv6 route ::/0 2001:db8:520:1826::26
+!
+ip prefix-list PL-DEFAULT-ONLY seq 5 permit 0.0.0.0/0
+ipv6 prefix-list PL6-DEFAULT-ONLY seq 5 permit ::/0
+!
+route-map RM-DEFAULT permit 10
+ match ip address prefix-list PL-DEFAULT-ONLY
+!
+route-map RM6-DEFAULT permit 10
+ match ipv6 address prefix-list PL6-DEFAULT-ONLY
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 2042
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0
+   no passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/1
+   no passive-interface
+  exit-af-interface
+  network 10.20.0.0 0.0.255.255
+  !
+  topology base
+   default-metric 10000 100 255 1 1500
+   redistribute static route-map RM-DEFAULT
+  exit-af-topology
+  eigrp router-id 10.20.255.18
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 2042
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0
+   no passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/1
+   no passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/2
+   shutdown
+  exit-af-interface
+  !
+  af-interface Ethernet0/3
+   shutdown
+  exit-af-interface
+  !
+  topology base
+   default-metric 10000 100 255 1 1500
+   redistribute static route-map RM6-DEFAULT
+  exit-af-topology
+  eigrp router-id 10.20.255.18
+ exit-address-family
+!
+! ---------- lab06: eBGP ----------
+interface Loopback1
+ description Public / BGP test
+ ip address 20.42.0.18 255.255.255.255
+!
+ip route 20.42.0.0 255.255.255.0 Null0 254
+!
+router bgp 2042
+ bgp router-id 10.20.255.18
+ bgp log-neighbor-changes
+ neighbor 52.0.1.1 remote-as 520
+ neighbor 52.0.1.1 description R24 Triada
+ neighbor 52.0.1.5 remote-as 520
+ neighbor 52.0.1.5 description R26 Triada
+ !
+ address-family ipv4
+  network 20.42.0.0 mask 255.255.255.0
+  neighbor 52.0.1.1 activate
+  neighbor 52.0.1.5 activate
+ exit-address-family
+!
+! ---------- lab07: iBGP ----------
+router bgp 2042
+ !
+ address-family ipv4
+  maximum-paths 2
+ exit-address-family
+!
+! ---------- lab08: BGP filtering ----------
+ip prefix-list PL-SPB-OUT seq 5 permit 20.42.0.0/24
+!
+router bgp 2042
+ address-family ipv4
+  neighbor 52.0.1.1 prefix-list PL-SPB-OUT out
+  neighbor 52.0.1.5 prefix-list PL-SPB-OUT out
+ exit-address-family
+!
+! ---------- lab09: BGP IPv6 ----------
+ipv6 prefix-list PL6-SPB-OUT seq 5 permit 2001:db8:2042::/48
+!
+ipv6 route 2001:db8:2042::/48 Null0 254
+!
+router bgp 2042
+ neighbor 2001:db8:520:1824::24 remote-as 520
+ neighbor 2001:db8:520:1824::24 description R24 Triada
+ neighbor 2001:db8:520:1826::26 remote-as 520
+ neighbor 2001:db8:520:1826::26 description R26 Triada
+ !
+ address-family ipv4
+  no neighbor 2001:db8:520:1824::24 activate
+  no neighbor 2001:db8:520:1826::26 activate
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:2042::/48
+  maximum-paths 2
+  neighbor 2001:db8:520:1824::24 activate
+  neighbor 2001:db8:520:1824::24 prefix-list PL6-SPB-OUT out
+  neighbor 2001:db8:520:1826::26 activate
+  neighbor 2001:db8:520:1826::26 prefix-list PL6-SPB-OUT out
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

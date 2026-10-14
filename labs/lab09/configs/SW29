@@ -1,0 +1,86 @@
+hostname SW29
+!
+no ip domain-lookup
+vtp mode transparent
+!
+spanning-tree mode rapid-pvst
+!
+vlan 30
+ name USERS-VPC30
+!
+vlan 31
+ name USERS-VPC31
+!
+vlan 99
+ name MGMT
+!
+vlan 999
+ name NATIVE-UNUSED
+!
+interface Ethernet0/0
+ description VPC30
+ switchport mode access
+ switchport access vlan 30
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+ no shutdown
+!
+interface Ethernet0/1
+ description VPC31
+ switchport mode access
+ switchport access vlan 31
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+ no shutdown
+!
+interface Ethernet0/2
+ description to R28 e0/2
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 30,31,99
+ switchport mode trunk
+ spanning-tree portfast edge trunk
+ no shutdown
+!
+interface Ethernet0/3
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Ethernet1/0
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Ethernet1/1
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Ethernet1/2
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Ethernet1/3
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Vlan99
+ description Management
+ ip address 10.30.99.29 255.255.255.0
+ no shutdown
+!
+ip default-gateway 10.30.99.1
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
