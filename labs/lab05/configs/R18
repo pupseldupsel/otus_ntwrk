@@ -66,12 +66,12 @@ router eigrp SPB
   af-interface Ethernet0/1
    no passive-interface
   exit-af-interface
+  network 10.20.0.0 0.0.255.255
   !
   topology base
    default-metric 10000 100 255 1 1500
    redistribute static route-map RM-DEFAULT
   exit-af-topology
-  network 10.20.0.0 0.0.255.255
   eigrp router-id 10.20.255.18
  exit-address-family
  !

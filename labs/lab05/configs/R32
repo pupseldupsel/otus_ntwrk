@@ -28,10 +28,10 @@ router eigrp SPB
   af-interface Ethernet0/0
    no passive-interface
   exit-af-interface
+  network 10.20.0.0 0.0.255.255
   !
   topology base
   exit-af-topology
-  network 10.20.0.0 0.0.255.255
   eigrp router-id 10.20.255.32
  exit-address-family
  !
