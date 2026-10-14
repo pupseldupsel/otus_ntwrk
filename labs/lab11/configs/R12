@@ -1,0 +1,136 @@
+hostname R12
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.10.255.12 255.255.255.255
+ ipv6 address 2001:db8:1001:ffff::12/128
+!
+interface Ethernet0/0
+ description trunk to SW4 (VLAN 10,99)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/0.10
+ description VLAN10 USERS-VPC1
+ encapsulation dot1Q 10
+ ip address 10.10.10.2 255.255.255.0
+ ipv6 address fe80::12 link-local
+ ipv6 address 2001:db8:1001:10::12/64
+ standby version 2
+ standby 10 ip 10.10.10.1
+ standby 10 priority 110
+ standby 10 preempt
+!
+interface Ethernet0/0.99
+ description VLAN99 MGMT
+ encapsulation dot1Q 99
+ ip address 10.10.99.2 255.255.255.0
+ ipv6 address fe80::12 link-local
+ ipv6 address 2001:db8:1001:99::12/64
+ standby version 2
+ standby 99 ip 10.10.99.1
+ standby 99 priority 110
+ standby 99 preempt
+!
+interface Ethernet0/1
+ description trunk to SW5 (VLAN 70)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/1.70
+ description VLAN70 USERS-VPC7
+ encapsulation dot1Q 70
+ ip address 10.10.70.2 255.255.255.0
+ ipv6 address fe80::12 link-local
+ ipv6 address 2001:db8:1001:70::12/64
+ standby version 2
+ standby 70 ip 10.10.70.1
+ standby 70 priority 110
+ standby 70 preempt
+!
+interface Ethernet0/2
+ description to R14
+ ip address 10.10.0.1 255.255.255.252
+ ipv6 address fe80::12 link-local
+ ipv6 address 2001:db8:1001:1214::12/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R15
+ ip address 10.10.0.13 255.255.255.252
+ ipv6 address fe80::12 link-local
+ ipv6 address 2001:db8:1001:1215::12/64
+ no shutdown
+!
+! ---------- lab03: OSPF ----------
+router ospf 1
+ router-id 10.10.255.12
+ passive-interface Loopback0
+ passive-interface Ethernet0/0.10
+ passive-interface Ethernet0/0.99
+ passive-interface Ethernet0/1.70
+!
+ipv6 router ospf 1
+ router-id 10.10.255.12
+ passive-interface Loopback0
+ passive-interface Ethernet0/0.10
+ passive-interface Ethernet0/0.99
+ passive-interface Ethernet0/1.70
+!
+interface Ethernet0/2
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Ethernet0/3
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Loopback0
+ ip ospf 1 area 10
+ ipv6 ospf 1 area 10
+!
+interface Ethernet0/0.10
+ ip ospf 1 area 10
+ ipv6 ospf 1 area 10
+!
+interface Ethernet0/0.99
+ ip ospf 1 area 10
+ ipv6 ospf 1 area 10
+!
+interface Ethernet0/1.70
+ ip ospf 1 area 10
+ ipv6 ospf 1 area 10
+!
+! ---------- lab10: DHCP ----------
+ip dhcp excluded-address 10.10.10.1 10.10.10.99
+ip dhcp excluded-address 10.10.10.150 10.10.10.254
+ip dhcp excluded-address 10.10.70.1 10.10.70.99
+ip dhcp excluded-address 10.10.70.150 10.10.70.254
+ip dhcp pool VLAN10
+ network 10.10.10.0 255.255.255.0
+ default-router 10.10.10.1
+ lease 1
+!
+ip dhcp pool VLAN70
+ network 10.10.70.0 255.255.255.0
+ default-router 10.10.70.1
+ lease 1
+!
+! ---------- lab10: NTP ----------
+clock timezone MSK 3 0
+ntp source Loopback0
+ntp master 3
+ntp peer 10.10.255.13
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
