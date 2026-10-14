@@ -92,7 +92,7 @@ router eigrp SPB
   network 10.20.0.0 0.0.255.255
   !
   topology base
-   distribute-list prefix-list PL-DEFAULT-ONLY out Ethernet0/3
+   distribute-list prefix PL-DEFAULT-ONLY out Ethernet0/3
   exit-af-topology
   eigrp router-id 10.20.255.16
  exit-address-family
