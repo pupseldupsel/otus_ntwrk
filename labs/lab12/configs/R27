@@ -1,0 +1,68 @@
+hostname R27
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.40.255.27 255.255.255.255
+ ipv6 address 2001:db8:1001:27ff::27/128
+!
+interface Ethernet0/0
+ description to R25
+ ip address 52.0.1.10 255.255.255.252
+ ipv6 address fe80::27 link-local
+ ipv6 address 2001:db8:520:2527::27/64
+ no shutdown
+!
+! ---------- lab02: маршрут по умолчанию ----------
+ip route 0.0.0.0 0.0.0.0 52.0.1.9
+ipv6 route ::/0 2001:db8:520:2527::25
+!
+! ---------- lab11: DMVPN spoke ----------
+interface Tunnel1
+ description DMVPN spoke
+ ip address 10.200.0.27 255.255.255.0
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ ip nhrp authentication OTUS
+ ip nhrp network-id 100
+ ip nhrp map 10.200.0.1 100.1.0.14
+ ip nhrp map multicast 100.1.0.14
+ ip nhrp nhs 10.200.0.1
+ ip nhrp shortcut
+ tunnel source Ethernet0/0
+ tunnel mode gre multipoint
+ tunnel key 100
+!
+ip route 10.0.0.0 255.0.0.0 10.200.0.1
+!
+! ---------- lab12: IPSec ----------
+crypto pki trustpoint OTUS
+ enrollment url http://100.1.0.14:80
+ subject-name CN=R27.otus.lab,O=OTUS
+ serial-number none
+ ip-address none
+ revocation-check none
+ rsakeypair R27-KEY 2048
+!
+crypto isakmp policy 10
+ encr aes 256
+ hash sha256
+ authentication rsa-sig
+ group 14
+!
+crypto ipsec transform-set TS-AES256 esp-aes 256 esp-sha256-hmac
+ mode transport
+!
+crypto ipsec profile PROF-IPSEC
+ set transform-set TS-AES256
+!
+interface Tunnel1
+ tunnel protection ipsec profile PROF-IPSEC
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

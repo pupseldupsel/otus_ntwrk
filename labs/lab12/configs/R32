@@ -1,0 +1,58 @@
+hostname R32
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.20.255.32 255.255.255.255
+ ipv6 address 2001:db8:2042:ffff::32/128
+!
+interface Ethernet0/0
+ description to R16
+ ip address 10.20.0.10 255.255.255.252
+ ipv6 address fe80::32 link-local
+ ipv6 address 2001:db8:2042:1632::32/64
+ no shutdown
+!
+! ---------- lab05: EIGRP named-mode ----------
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 2042
+  eigrp stub connected
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0
+   no passive-interface
+  exit-af-interface
+  network 10.20.0.0 0.0.255.255
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 10.20.255.32
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 2042
+  eigrp stub connected
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0
+   no passive-interface
+  exit-af-interface
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 10.20.255.32
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

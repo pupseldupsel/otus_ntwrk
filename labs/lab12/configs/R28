@@ -1,0 +1,171 @@
+hostname R28
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.30.255.28 255.255.255.255
+ ipv6 address 2001:db8:1001:28ff::28/128
+!
+interface Ethernet0/0
+ description to R26
+ ip address 52.0.1.14 255.255.255.252
+ ipv6 address fe80::28 link-local
+ ipv6 address 2001:db8:520:2628::28/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R25
+ ip address 52.0.1.18 255.255.255.252
+ ipv6 address fe80::28 link-local
+ ipv6 address 2001:db8:520:2528::28/64
+ no shutdown
+!
+interface Ethernet0/2
+ description trunk to SW29 (VLAN 30,31,99)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/2.30
+ description VLAN30 USERS-VPC30
+ encapsulation dot1Q 30
+ ip address 10.30.30.1 255.255.255.0
+ ipv6 address fe80::28 link-local
+ ipv6 address 2001:db8:1001:2830::28/64
+!
+interface Ethernet0/2.31
+ description VLAN31 USERS-VPC31
+ encapsulation dot1Q 31
+ ip address 10.30.31.1 255.255.255.0
+ ipv6 address fe80::28 link-local
+ ipv6 address 2001:db8:1001:2831::28/64
+!
+interface Ethernet0/2.99
+ description VLAN99 MGMT
+ encapsulation dot1Q 99
+ ip address 10.30.99.1 255.255.255.0
+ ipv6 address fe80::28 link-local
+ ipv6 address 2001:db8:1001:2899::28/64
+!
+! ---------- lab02: PBR + IP SLA ----------
+ip sla 1
+ icmp-echo 52.0.1.13 source-interface Ethernet0/0
+ frequency 5
+ip sla schedule 1 life forever start-time now
+ip sla 2
+ icmp-echo 52.0.1.17 source-interface Ethernet0/1
+ frequency 5
+ip sla schedule 2 life forever start-time now
+!
+track 1 ip sla 1 reachability
+ delay down 10 up 10
+track 2 ip sla 2 reachability
+ delay down 10 up 10
+!
+ip access-list extended ACL-VLAN30
+ deny ip any 10.0.0.0 0.255.255.255
+ permit ip 10.30.30.0 0.0.0.255 any
+ip access-list extended ACL-VLAN31
+ deny ip any 10.0.0.0 0.255.255.255
+ permit ip 10.30.31.0 0.0.0.255 any
+!
+route-map PBR-CHOKURDAH permit 10
+ description VLAN30 -> R26, backup R25
+ match ip address ACL-VLAN30
+ set ip next-hop verify-availability 52.0.1.13 10 track 1
+ set ip next-hop verify-availability 52.0.1.17 20 track 2
+route-map PBR-CHOKURDAH permit 20
+ description VLAN31 -> R25, backup R26
+ match ip address ACL-VLAN31
+ set ip next-hop verify-availability 52.0.1.17 10 track 2
+ set ip next-hop verify-availability 52.0.1.13 20 track 1
+!
+interface Ethernet0/2.30
+ ip policy route-map PBR-CHOKURDAH
+!
+interface Ethernet0/2.31
+ ip policy route-map PBR-CHOKURDAH
+!
+ip route 0.0.0.0 0.0.0.0 52.0.1.13 track 1
+ip route 0.0.0.0 0.0.0.0 52.0.1.17 track 2
+ipv6 route ::/0 2001:db8:520:2628::26
+ipv6 route ::/0 2001:db8:520:2528::25
+!
+! ---------- lab10: NAT ----------
+ip access-list standard ACL-NAT-CHOKURDAH
+ permit 10.30.0.0 0.0.255.255
+!
+interface Ethernet0/2.30
+ ip nat inside
+!
+interface Ethernet0/2.31
+ ip nat inside
+!
+interface Ethernet0/2.99
+ ip nat inside
+!
+interface Ethernet0/0
+ ip nat outside
+!
+interface Ethernet0/1
+ ip nat outside
+!
+route-map RM-NAT-R26 permit 10
+ match ip address ACL-NAT-CHOKURDAH
+ match interface Ethernet0/0
+!
+route-map RM-NAT-R25 permit 10
+ match ip address ACL-NAT-CHOKURDAH
+ match interface Ethernet0/1
+!
+ip nat inside source route-map RM-NAT-R26 interface Ethernet0/0 overload
+ip nat inside source route-map RM-NAT-R25 interface Ethernet0/1 overload
+!
+! ---------- lab11: DMVPN spoke ----------
+interface Tunnel1
+ description DMVPN spoke
+ ip address 10.200.0.28 255.255.255.0
+ ip mtu 1400
+ ip tcp adjust-mss 1360
+ ip nhrp authentication OTUS
+ ip nhrp network-id 100
+ ip nhrp map 10.200.0.1 100.1.0.14
+ ip nhrp map multicast 100.1.0.14
+ ip nhrp nhs 10.200.0.1
+ ip nhrp shortcut
+ tunnel source Ethernet0/0
+ tunnel mode gre multipoint
+ tunnel key 100
+!
+ip route 10.0.0.0 255.0.0.0 10.200.0.1
+!
+! ---------- lab12: IPSec ----------
+crypto pki trustpoint OTUS
+ enrollment url http://100.1.0.14:80
+ subject-name CN=R28.otus.lab,O=OTUS
+ serial-number none
+ ip-address none
+ revocation-check none
+ rsakeypair R28-KEY 2048
+!
+crypto isakmp policy 10
+ encr aes 256
+ hash sha256
+ authentication rsa-sig
+ group 14
+!
+crypto ipsec transform-set TS-AES256 esp-aes 256 esp-sha256-hmac
+ mode transport
+!
+crypto ipsec profile PROF-IPSEC
+ set transform-set TS-AES256
+!
+interface Tunnel1
+ tunnel protection ipsec profile PROF-IPSEC
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
