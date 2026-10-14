@@ -1,0 +1,48 @@
+hostname R26
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 52.0.255.26 255.255.255.255
+ ipv6 address 2001:db8:520:ffff::26/128
+!
+interface Ethernet0/0
+ description to R24
+ ip address 52.0.0.10 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2426::26/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R28
+ ip address 52.0.1.13 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2628::26/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R25
+ ip address 52.0.0.14 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2526::26/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R18
+ ip address 52.0.1.5 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:1826::26/64
+ no shutdown
+!
+! ---------- lab02: временные маршруты до клиентов (до IS-IS) ----------
+ip route 10.30.0.0 255.255.0.0 52.0.1.14
+ip route 52.0.255.25 255.255.255.255 52.0.0.13
+ipv6 route 2001:db8:1001:2800::/56 2001:db8:520:2628::28
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
