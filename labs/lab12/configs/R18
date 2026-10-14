@@ -206,17 +206,31 @@ crypto pki trustpoint OTUS
  revocation-check none
  rsakeypair R18-KEY 2048
 !
-crypto isakmp policy 10
- encr aes 256
- hash sha256
- authentication rsa-sig
+crypto pki certificate map CM-OTUS 10
+ issuer-name co cn = otus-ca
+!
+crypto ikev2 proposal IKEV2-PROP
+ encryption aes-cbc-256
+ integrity sha256
  group 14
+!
+crypto ikev2 policy IKEV2-POL
+ proposal IKEV2-PROP
+!
+crypto ikev2 profile IKEV2-PROF
+ match certificate CM-OTUS
+ identity local dn
+ authentication local rsa-sig
+ authentication remote rsa-sig
+ pki trustpoint OTUS
+ dpd 10 2 on-demand
 !
 crypto ipsec transform-set TS-AES256 esp-aes 256 esp-sha256-hmac
  mode transport
 !
 crypto ipsec profile PROF-IPSEC
  set transform-set TS-AES256
+ set ikev2-profile IKEV2-PROF
 !
 interface Tunnel0
  tunnel protection ipsec profile PROF-IPSEC
