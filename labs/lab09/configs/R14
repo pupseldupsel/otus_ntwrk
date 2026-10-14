@@ -1,0 +1,152 @@
+hostname R14
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.10.255.14 255.255.255.255
+ ipv6 address 2001:db8:1001:ffff::14/128
+!
+interface Ethernet0/0
+ description to R12
+ ip address 10.10.0.2 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1214::14/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R13
+ ip address 10.10.0.6 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1314::14/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R22
+ ip address 101.0.0.2 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:101:1422::14/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R19
+ ip address 10.10.0.17 255.255.255.252
+ ipv6 address fe80::14 link-local
+ ipv6 address 2001:db8:1001:1419::14/64
+ no shutdown
+!
+! ---------- lab03: OSPF ----------
+router ospf 1
+ router-id 10.10.255.14
+ passive-interface Loopback0
+ area 101 stub no-summary
+ default-information originate
+!
+ipv6 router ospf 1
+ router-id 10.10.255.14
+ passive-interface Loopback0
+ area 101 stub no-summary
+ default-information originate
+!
+interface Ethernet0/0
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Ethernet0/1
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+interface Loopback0
+ ip ospf 1 area 0
+ ipv6 ospf 1 area 0
+!
+interface Ethernet0/3
+ ip ospf 1 area 101
+ ipv6 ospf 1 area 101
+ ip ospf network point-to-point
+ ipv6 ospf network point-to-point
+!
+!
+! ---------- lab06: eBGP ----------
+interface Loopback1
+ description Public / BGP test
+ ip address 100.1.0.14 255.255.255.255
+ ip ospf 1 area 0
+!
+ip route 100.1.0.0 255.255.255.0 Null0 254
+!
+router bgp 1001
+ bgp router-id 10.10.255.14
+ bgp log-neighbor-changes
+ neighbor 101.0.0.1 remote-as 101
+ neighbor 101.0.0.1 description R22 Kitorn
+ !
+ address-family ipv4
+  network 100.1.0.0 mask 255.255.255.0
+  neighbor 101.0.0.1 activate
+ exit-address-family
+!
+! ---------- lab07: iBGP ----------
+route-map RM-KITORN-OUT permit 10
+ description Kitorn = backup: prepend
+ set as-path prepend 1001 1001
+!
+router ospf 1
+ default-information originate metric 50
+!
+router bgp 1001
+ neighbor 10.10.255.15 remote-as 1001
+ neighbor 10.10.255.15 description R15 iBGP
+ neighbor 10.10.255.15 update-source Loopback0
+ !
+ address-family ipv4
+  neighbor 10.10.255.15 activate
+  neighbor 10.10.255.15 next-hop-self
+  neighbor 101.0.0.1 route-map RM-KITORN-OUT out
+ exit-address-family
+!
+! ---------- lab08: BGP filtering ----------
+ip as-path access-list 1 permit ^$
+!
+router bgp 1001
+ address-family ipv4
+  neighbor 101.0.0.1 filter-list 1 out
+ exit-address-family
+!
+! ---------- lab09: BGP IPv6 ----------
+ipv6 route 2001:db8:1001::/48 Null0 254
+!
+ipv6 router ospf 1
+ default-information originate metric 50
+!
+router bgp 1001
+ neighbor 2001:db8:101:1422::22 remote-as 101
+ neighbor 2001:db8:101:1422::22 description R22 Kitorn
+ neighbor 2001:db8:1001:ffff::15 remote-as 1001
+ neighbor 2001:db8:1001:ffff::15 description R15 iBGP
+ neighbor 2001:db8:1001:ffff::15 update-source Loopback0
+ !
+ address-family ipv4
+  no neighbor 2001:db8:101:1422::22 activate
+  no neighbor 2001:db8:1001:ffff::15 activate
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:1001::/48
+  neighbor 2001:db8:101:1422::22 activate
+  neighbor 2001:db8:101:1422::22 filter-list 1 out
+  neighbor 2001:db8:101:1422::22 route-map RM-KITORN-OUT out
+  neighbor 2001:db8:1001:ffff::15 activate
+  neighbor 2001:db8:1001:ffff::15 next-hop-self
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

@@ -1,0 +1,95 @@
+hostname R21
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 30.1.255.21 255.255.255.255
+ ipv6 address 2001:db8:301:ffff::21/128
+!
+interface Ethernet0/0
+ description to R15
+ ip address 30.1.0.1 255.255.255.252
+ ipv6 address fe80::21 link-local
+ ipv6 address 2001:db8:301:1521::21/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R22
+ ip address 101.0.0.6 255.255.255.252
+ ipv6 address fe80::21 link-local
+ ipv6 address 2001:db8:101:2122::21/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R24
+ ip address 30.1.0.5 255.255.255.252
+ ipv6 address fe80::21 link-local
+ ipv6 address 2001:db8:301:2124::21/64
+ no shutdown
+!
+! ---------- lab06: eBGP ----------
+ip route 30.1.0.0 255.255.0.0 Null0 254
+!
+router bgp 301
+ bgp router-id 30.1.255.21
+ bgp log-neighbor-changes
+ neighbor 30.1.0.2 remote-as 1001
+ neighbor 30.1.0.2 description R15 Moscow
+ neighbor 101.0.0.5 remote-as 101
+ neighbor 101.0.0.5 description R22 Kitorn
+ neighbor 30.1.0.6 remote-as 520
+ neighbor 30.1.0.6 description R24 Triada
+ !
+ address-family ipv4
+  network 30.1.0.0 mask 255.255.0.0
+  neighbor 30.1.0.2 activate
+  neighbor 101.0.0.5 activate
+  neighbor 30.1.0.6 activate
+ exit-address-family
+!
+! ---------- lab08: BGP filtering ----------
+ip prefix-list PL-TO-MOSCOW seq 5 permit 0.0.0.0/0
+ip prefix-list PL-TO-MOSCOW seq 10 permit 20.42.0.0/24
+!
+router bgp 301
+ address-family ipv4
+  neighbor 30.1.0.2 default-originate
+  neighbor 30.1.0.2 prefix-list PL-TO-MOSCOW out
+ exit-address-family
+!
+! ---------- lab09: BGP IPv6 ----------
+ipv6 prefix-list PL6-TO-MOSCOW seq 5 permit ::/0
+ipv6 prefix-list PL6-TO-MOSCOW seq 10 permit 2001:db8:2042::/48
+!
+ipv6 route 2001:db8:301::/48 Null0 254
+!
+router bgp 301
+ neighbor 2001:db8:301:1521::15 remote-as 1001
+ neighbor 2001:db8:301:1521::15 description R15 Moscow
+ neighbor 2001:db8:101:2122::22 remote-as 101
+ neighbor 2001:db8:101:2122::22 description R22 Kitorn
+ neighbor 2001:db8:301:2124::24 remote-as 520
+ neighbor 2001:db8:301:2124::24 description R24 Triada
+ !
+ address-family ipv4
+  no neighbor 2001:db8:301:1521::15 activate
+  no neighbor 2001:db8:101:2122::22 activate
+  no neighbor 2001:db8:301:2124::24 activate
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:301::/48
+  neighbor 2001:db8:301:1521::15 activate
+  neighbor 2001:db8:301:1521::15 default-originate
+  neighbor 2001:db8:301:1521::15 prefix-list PL6-TO-MOSCOW out
+  neighbor 2001:db8:101:2122::22 activate
+  neighbor 2001:db8:301:2124::24 activate
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end

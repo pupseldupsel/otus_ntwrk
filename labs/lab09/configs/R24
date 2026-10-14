@@ -1,0 +1,120 @@
+hostname R24
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 52.0.255.24 255.255.255.255
+ ipv6 address 2001:db8:520:ffff::24/128
+!
+interface Ethernet0/0
+ description to R21
+ ip address 30.1.0.6 255.255.255.252
+ ipv6 address fe80::24 link-local
+ ipv6 address 2001:db8:301:2124::24/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R26
+ ip address 52.0.0.9 255.255.255.252
+ ipv6 address fe80::24 link-local
+ ipv6 address 2001:db8:520:2426::24/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R23
+ ip address 52.0.0.6 255.255.255.252
+ ipv6 address fe80::24 link-local
+ ipv6 address 2001:db8:520:2324::24/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R18
+ ip address 52.0.1.1 255.255.255.252
+ ipv6 address fe80::24 link-local
+ ipv6 address 2001:db8:520:1824::24/64
+ no shutdown
+!
+! ---------- lab04: IS-IS ----------
+router isis TRIADA
+ net 49.0024.0520.0000.0024.00
+ is-type level-2-only
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+ passive-interface Ethernet0/3
+ !
+ address-family ipv6
+  multi-topology
+ exit-address-family
+!
+interface Ethernet0/1
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+!
+interface Ethernet0/2
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+!
+! ---------- lab06: eBGP ----------
+ip route 52.0.0.0 255.255.0.0 Null0 254
+!
+router bgp 520
+ bgp router-id 52.0.255.24
+ bgp log-neighbor-changes
+ neighbor 30.1.0.5 remote-as 301
+ neighbor 30.1.0.5 description R21 Lamas
+ neighbor 52.0.1.2 remote-as 2042
+ neighbor 52.0.1.2 description R18 SPb
+ !
+ address-family ipv4
+  network 52.0.0.0 mask 255.255.0.0
+  neighbor 30.1.0.5 activate
+  neighbor 52.0.1.2 activate
+ exit-address-family
+!
+! ---------- lab07: iBGP ----------
+router bgp 520
+ neighbor 52.0.255.23 remote-as 520
+ neighbor 52.0.255.23 description R23 RR
+ neighbor 52.0.255.23 update-source Loopback0
+ !
+ address-family ipv4
+  neighbor 52.0.255.23 activate
+  neighbor 52.0.255.23 next-hop-self
+ exit-address-family
+!
+! ---------- lab09: BGP IPv6 ----------
+ipv6 route 2001:db8:520::/48 Null0 254
+!
+router bgp 520
+ neighbor 2001:db8:301:2124::21 remote-as 301
+ neighbor 2001:db8:301:2124::21 description R21 Lamas
+ neighbor 2001:db8:520:1824::18 remote-as 2042
+ neighbor 2001:db8:520:1824::18 description R18 SPb
+ neighbor 2001:db8:520:ffff::23 remote-as 520
+ neighbor 2001:db8:520:ffff::23 description R23 RR
+ neighbor 2001:db8:520:ffff::23 update-source Loopback0
+ !
+ address-family ipv4
+  no neighbor 2001:db8:301:2124::21 activate
+  no neighbor 2001:db8:520:1824::18 activate
+  no neighbor 2001:db8:520:ffff::23 activate
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:520::/48
+  neighbor 2001:db8:301:2124::21 activate
+  neighbor 2001:db8:520:1824::18 activate
+  neighbor 2001:db8:520:ffff::23 activate
+  neighbor 2001:db8:520:ffff::23 next-hop-self
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
