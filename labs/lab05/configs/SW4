@@ -1,0 +1,104 @@
+hostname SW4
+!
+no ip domain-lookup
+vtp mode transparent
+!
+spanning-tree mode rapid-pvst
+spanning-tree vlan 10,99 root primary
+spanning-tree vlan 70 root secondary
+!
+vlan 10
+ name USERS-VPC1
+!
+vlan 70
+ name USERS-VPC7
+!
+vlan 99
+ name MGMT
+!
+vlan 999
+ name NATIVE-UNUSED
+!
+interface Port-channel1
+ description LACP to SW5
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,70,99
+ switchport mode trunk
+!
+interface Ethernet0/0
+ description to SW3 e0/0
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,70,99
+ switchport mode trunk
+ no shutdown
+!
+interface Ethernet0/1
+ description to SW2 e0/1
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,70,99
+ switchport mode trunk
+ no shutdown
+!
+interface Ethernet0/2
+ description Po1 to SW5 e0/2
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,70,99
+ switchport mode trunk
+ channel-group 1 mode active
+ no shutdown
+!
+interface Ethernet0/3
+ description Po1 to SW5 e0/3
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,70,99
+ switchport mode trunk
+ channel-group 1 mode active
+ no shutdown
+!
+interface Ethernet1/0
+ description to R12 e0/0
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,99
+ switchport mode trunk
+ spanning-tree portfast edge trunk
+ no shutdown
+!
+interface Ethernet1/1
+ description to R13 e0/1
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 70
+ switchport mode trunk
+ spanning-tree portfast edge trunk
+ no shutdown
+!
+interface Ethernet1/2
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Ethernet1/3
+ description unused
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+interface Vlan99
+ description Management
+ ip address 10.10.99.40 255.255.255.0
+ no shutdown
+!
+ip default-gateway 10.10.99.1
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
