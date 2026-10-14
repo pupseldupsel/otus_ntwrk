@@ -8,7 +8,7 @@
 5. [EIGRP named-mode (С.-Петербург)](lab05/)
 6. [BGP. Основы: eBGP между офисами и провайдерами](lab06/)
 7. [iBGP и Route Reflector (Москва, Триада)](lab07/)
-8. BGP. Фильтрация
+8. [BGP. Фильтрация](lab08/)
 9. BGP для IPv6 unicast
 10. NAT, DHCP, NTP
 11. VPN: GRE и DMVPN
