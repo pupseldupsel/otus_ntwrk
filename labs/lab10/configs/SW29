@@ -79,6 +79,9 @@ interface Vlan99
 !
 ip default-gateway 10.30.99.1
 !
+! ---------- lab10: mgmt default route ----------
+ip route 0.0.0.0 0.0.0.0 10.30.99.1
+!
 line con 0
  logging synchronous
  exec-timeout 0 0
