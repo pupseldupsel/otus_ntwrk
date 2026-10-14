@@ -1,0 +1,129 @@
+hostname R16
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 10.20.255.16 255.255.255.255
+ ipv6 address 2001:db8:2042:ffff::16/128
+!
+interface Ethernet0/0
+ description trunk to SW10 (VLAN 90,99)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/0.90
+ description VLAN90 USERS-VPC
+ encapsulation dot1Q 90
+ ip address 10.20.90.2 255.255.255.0
+ ipv6 address fe80::16 link-local
+ ipv6 address 2001:db8:2042:90::16/64
+ standby version 2
+ standby 90 ip 10.20.90.1
+ standby 90 priority 110
+ standby 90 preempt
+!
+interface Ethernet0/0.99
+ description VLAN99 MGMT
+ encapsulation dot1Q 99
+ ip address 10.20.99.2 255.255.255.0
+ ipv6 address fe80::16 link-local
+ ipv6 address 2001:db8:2042:99::16/64
+ standby version 2
+ standby 99 ip 10.20.99.1
+ standby 99 priority 110
+ standby 99 preempt
+!
+interface Ethernet0/1
+ description to R18
+ ip address 10.20.0.1 255.255.255.252
+ ipv6 address fe80::16 link-local
+ ipv6 address 2001:db8:2042:1618::16/64
+ no shutdown
+!
+interface Ethernet0/2
+ description trunk to SW9 (VLAN 80)
+ no ip address
+ no shutdown
+!
+interface Ethernet0/2.80
+ description VLAN80 USERS-VPC8
+ encapsulation dot1Q 80
+ ip address 10.20.80.2 255.255.255.0
+ ipv6 address fe80::16 link-local
+ ipv6 address 2001:db8:2042:80::16/64
+ standby version 2
+ standby 80 ip 10.20.80.1
+ standby 80 priority 110
+ standby 80 preempt
+!
+interface Ethernet0/3
+ description to R32
+ ip address 10.20.0.9 255.255.255.252
+ ipv6 address fe80::16 link-local
+ ipv6 address 2001:db8:2042:1632::16/64
+ no shutdown
+!
+! ---------- lab05: EIGRP named-mode ----------
+ip prefix-list PL-DEFAULT-ONLY seq 5 permit 0.0.0.0/0
+ipv6 prefix-list PL6-DEFAULT-ONLY seq 5 permit ::/0
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 2042
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/1
+   no passive-interface
+   summary-address 10.20.0.0 255.255.0.0
+  exit-af-interface
+  !
+  af-interface Ethernet0/3
+   no passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0.99
+   no passive-interface
+  exit-af-interface
+  !
+  topology base
+   distribute-list prefix-list PL-DEFAULT-ONLY out Ethernet0/3
+  exit-af-topology
+  network 10.20.0.0 0.0.255.255
+  eigrp router-id 10.20.255.16
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 2042
+  !
+  af-interface default
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/1
+   no passive-interface
+   summary-address 2001:db8:2042::/48
+  exit-af-interface
+  !
+  af-interface Ethernet0/3
+   no passive-interface
+  exit-af-interface
+  !
+  af-interface Ethernet0/0.99
+   no passive-interface
+  exit-af-interface
+  !
+  topology base
+   distribute-list prefix-list PL6-DEFAULT-ONLY out Ethernet0/3
+  exit-af-topology
+  eigrp router-id 10.20.255.16
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
