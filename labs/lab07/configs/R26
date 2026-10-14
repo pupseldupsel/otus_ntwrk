@@ -1,0 +1,96 @@
+hostname R26
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 52.0.255.26 255.255.255.255
+ ipv6 address 2001:db8:520:ffff::26/128
+!
+interface Ethernet0/0
+ description to R24
+ ip address 52.0.0.10 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2426::26/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R28
+ ip address 52.0.1.13 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2628::26/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R25
+ ip address 52.0.0.14 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:2526::26/64
+ no shutdown
+!
+interface Ethernet0/3
+ description to R18
+ ip address 52.0.1.5 255.255.255.252
+ ipv6 address fe80::26 link-local
+ ipv6 address 2001:db8:520:1826::26/64
+ no shutdown
+!
+! ---------- lab02: статические маршруты до клиентов (до BGP) ----------
+ip route 10.30.0.0 255.255.0.0 52.0.1.14
+ipv6 route 2001:db8:1001:2800::/56 2001:db8:520:2628::28
+!
+! ---------- lab04: IS-IS ----------
+router isis TRIADA
+ net 49.0026.0520.0000.0026.00
+ is-type level-2-only
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+ passive-interface Ethernet0/1
+ passive-interface Ethernet0/3
+ !
+ address-family ipv6
+  multi-topology
+ exit-address-family
+!
+interface Ethernet0/0
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+!
+interface Ethernet0/2
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+!
+! ---------- lab06: eBGP ----------
+ip route 52.0.0.0 255.255.0.0 Null0 254
+!
+router bgp 520
+ bgp router-id 52.0.255.26
+ bgp log-neighbor-changes
+ neighbor 52.0.1.6 remote-as 2042
+ neighbor 52.0.1.6 description R18 SPb
+ !
+ address-family ipv4
+  network 52.0.0.0 mask 255.255.0.0
+  neighbor 52.0.1.6 activate
+ exit-address-family
+!
+! ---------- lab07: iBGP ----------
+router bgp 520
+ neighbor 52.0.255.23 remote-as 520
+ neighbor 52.0.255.23 description R23 RR
+ neighbor 52.0.255.23 update-source Loopback0
+ !
+ address-family ipv4
+  neighbor 52.0.255.23 activate
+  neighbor 52.0.255.23 next-hop-self
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
