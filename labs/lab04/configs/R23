@@ -1,0 +1,58 @@
+hostname R23
+!
+no ip domain-lookup
+ipv6 unicast-routing
+!
+interface Loopback0
+ description Management / Router-ID
+ ip address 52.0.255.23 255.255.255.255
+ ipv6 address 2001:db8:520:ffff::23/128
+!
+interface Ethernet0/0
+ description to R22
+ ip address 101.0.0.10 255.255.255.252
+ ipv6 address fe80::23 link-local
+ ipv6 address 2001:db8:101:2223::23/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to R25
+ ip address 52.0.0.1 255.255.255.252
+ ipv6 address fe80::23 link-local
+ ipv6 address 2001:db8:520:2325::23/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to R24
+ ip address 52.0.0.5 255.255.255.252
+ ipv6 address fe80::23 link-local
+ ipv6 address 2001:db8:520:2324::23/64
+ no shutdown
+!
+! ---------- lab04: IS-IS ----------
+router isis TRIADA
+ net 49.2222.0520.0000.0023.00
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+ !
+ address-family ipv6
+  multi-topology
+ exit-address-family
+!
+interface Ethernet0/1
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+!
+interface Ethernet0/2
+ ip router isis TRIADA
+ ipv6 router isis TRIADA
+ isis network point-to-point
+ isis circuit-type level-2-only
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+!
+end
