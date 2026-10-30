@@ -233,6 +233,7 @@ crypto ipsec profile PROF-IPSEC
  set ikev2-profile IKEV2-PROF
 !
 interface Tunnel0
+ no keepalive
  tunnel protection ipsec profile PROF-IPSEC
 !
 line con 0
