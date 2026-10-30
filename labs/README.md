@@ -12,5 +12,5 @@
 9. [BGP для IPv6 unicast](lab09/)
 10. [NAT, DHCP, NTP](lab10/)
 11. [VPN: GRE и DMVPN](lab11/)
-12. IPSec over GRE и DMVPN, PKI
+12. [IPSec over GRE и DMVPN, PKI](lab12/)
 13. MPLS: BGP free core
