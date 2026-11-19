@@ -21,7 +21,7 @@ interface Loopback0
  ipv6 address 2001:db8:100:ffff::12/128
 !
 interface Ethernet0/0
- description core to P2
+ description backbone to P2
  ip address 10.1.0.18 255.255.255.252
  ip router isis ISP
  isis network point-to-point
@@ -29,7 +29,7 @@ interface Ethernet0/0
  no shutdown
 !
 interface Ethernet0/2
- description core to BR1
+ description backbone to BR1
  ip address 10.1.0.30 255.255.255.252
  ip router isis ISP
  isis network point-to-point
