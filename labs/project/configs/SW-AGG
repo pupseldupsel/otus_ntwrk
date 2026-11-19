@@ -1,0 +1,42 @@
+hostname SW-AGG
+!
+no ip domain-lookup
+vtp mode transparent
+!
+vlan 100
+ name SUBSCRIBERS-100
+vlan 200
+ name SUBSCRIBERS-200
+!
+spanning-tree mode rapid-pvst
+spanning-tree vlan 100,200 priority 4096
+!
+interface Ethernet0/0
+ description trunk to PE2 (BNG)
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 100,200
+ no shutdown
+!
+interface Port-channel1
+ description LACP trunk to SW-ACC
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 100,200
+!
+interface range Ethernet0/1 - 2
+ description Po1 member to SW-ACC
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 100,200
+ channel-group 1 mode active
+ no shutdown
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+line vty 0 4
+ login
+ transport input telnet
+!
+end

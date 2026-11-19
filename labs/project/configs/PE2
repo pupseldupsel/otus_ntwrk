@@ -1,0 +1,281 @@
+hostname PE2
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+ipv6 unicast-routing
+ipv6 cef
+!
+aaa new-model
+aaa authentication login CONSOLE none
+aaa authentication login VTY local
+aaa authorization exec VTY local
+username admin privilege 15 secret otus
+!
+mpls label protocol ldp
+mpls ldp router-id Loopback0 force
+!
+interface Loopback0
+ description Router-ID / iBGP / LDP
+ ip address 10.0.0.22 255.255.255.255
+ ipv6 address 2001:db8:100:ffff::22/128
+!
+interface Ethernet0/0
+ description core to P2
+ ip address 10.1.0.22 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+interface Ethernet0/1
+ description core to P1
+ ip address 10.1.0.14 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+router isis ISP
+ net 49.0001.0000.0000.0022.00
+ is-type level-2-only
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+!
+ntp source Loopback0
+ntp server 10.0.0.11 prefer
+ntp server 10.0.0.12
+!
+ip bgp-community new-format
+ip community-list standard CL-CUST-BACKUP permit 64500:90
+!
+ip prefix-list PL-CUST-AS64600 seq 5 permit 203.0.113.0/24
+ip prefix-list PL-NONE seq 5 deny 0.0.0.0/0 le 32
+ipv6 prefix-list PL6-CUST-AS64600 seq 5 permit 2001:db8:600::/48
+ipv6 prefix-list PL6-NONE seq 5 deny ::/0 le 128
+!
+route-map RM-CUST-IN permit 10
+ description customer asked for backup (community 64500:90)
+ match ip address prefix-list PL-CUST-AS64600
+ match community CL-CUST-BACKUP
+ set local-preference 90
+ set community 64500:100 additive
+route-map RM-CUST-IN permit 20
+ match ip address prefix-list PL-CUST-AS64600
+ set community 64500:100 additive
+!
+route-map RM6-CUST-IN permit 10
+ match ipv6 address prefix-list PL6-CUST-AS64600
+ match community CL-CUST-BACKUP
+ set local-preference 90
+ set community 64500:100 additive
+route-map RM6-CUST-IN permit 20
+ match ipv6 address prefix-list PL6-CUST-AS64600
+ set community 64500:100 additive
+!
+vrf definition CORP
+ description L3VPN for corporate client
+ rd 64500:10
+ route-target export 64500:10
+ route-target import 64500:10
+ !
+ address-family ipv4
+ exit-address-family
+!
+interface Ethernet0/3
+ description eBGP to CUST AS64600
+ ip address 192.0.2.5 255.255.255.252
+ ipv6 address 2001:db8:100:f002::1/64
+ no shutdown
+!
+interface Ethernet0/2
+ description L3VPN CORP to CE-B
+ vrf forwarding CORP
+ ip address 172.31.0.5 255.255.255.252
+ no shutdown
+!
+ip access-list standard ACL-CGNAT
+ permit 100.64.0.0 0.63.255.255
+!
+interface Ethernet1/0
+ description trunk to SW-AGG (subscribers)
+ no ip address
+ no shutdown
+!
+interface Ethernet1/0.100
+ description subscribers VLAN 100
+ encapsulation dot1Q 100
+ ip address 100.64.100.1 255.255.255.0
+ ip nat inside
+ ipv6 address 2001:db8:100:100::1/64
+ ipv6 nd other-config-flag
+!
+interface Ethernet1/0.200
+ description subscribers VLAN 200
+ encapsulation dot1Q 200
+ ip address 100.64.200.1 255.255.255.0
+ ip nat inside
+ ipv6 address 2001:db8:100:200::1/64
+ ipv6 nd other-config-flag
+!
+interface Ethernet0/0
+ ip nat outside
+!
+interface Ethernet0/1
+ ip nat outside
+!
+ipv6 access-list ACL6-ICMP-OUT
+ permit icmp any any echo-request
+!
+ipv6 access-list ACL6-ICMP-IN
+ permit icmp any any echo-reply
+ permit icmp any any packet-too-big
+ permit icmp any any time-exceeded
+ permit icmp any any unreachable
+!
+class-map type inspect match-any CM-SUBS-OUT
+ match protocol icmp
+ match protocol tcp
+ match protocol udp
+!
+class-map type inspect match-any CM-V6-ICMP-OUT
+ match access-group name ACL6-ICMP-OUT
+!
+class-map type inspect match-any CM-V6-ICMP-IN
+ match access-group name ACL6-ICMP-IN
+!
+policy-map type inspect PM-SUBS-OUT
+ class type inspect CM-SUBS-OUT
+  inspect
+ class type inspect CM-V6-ICMP-OUT
+  pass
+ class class-default
+  drop
+!
+policy-map type inspect PM-OUT-SUBS
+ class type inspect CM-V6-ICMP-IN
+  pass
+ class class-default
+  drop
+!
+zone security SUBSCRIBERS
+ description abonent VLANs
+zone security OUTSIDE
+ description core, customers, VPN
+!
+zone-pair security ZP-SUBS-OUT source SUBSCRIBERS destination OUTSIDE
+ service-policy type inspect PM-SUBS-OUT
+!
+zone-pair security ZP-OUT-SUBS source OUTSIDE destination SUBSCRIBERS
+ service-policy type inspect PM-OUT-SUBS
+!
+interface Ethernet0/0
+ zone-member security OUTSIDE
+!
+interface Ethernet0/1
+ zone-member security OUTSIDE
+!
+interface Ethernet0/2
+ zone-member security OUTSIDE
+!
+interface Ethernet0/3
+ zone-member security OUTSIDE
+!
+interface Ethernet1/0.100
+ zone-member security SUBSCRIBERS
+!
+interface Ethernet1/0.200
+ zone-member security SUBSCRIBERS
+!
+ip dhcp excluded-address 100.64.100.1 100.64.100.9
+ip dhcp pool SUB-VLAN100
+ network 100.64.100.0 255.255.255.0
+ default-router 100.64.100.1
+ dns-server 198.51.100.53
+ lease 0 4
+!
+ip dhcp excluded-address 100.64.200.1 100.64.200.9
+ip dhcp pool SUB-VLAN200
+ network 100.64.200.0 255.255.255.0
+ default-router 100.64.200.1
+ dns-server 198.51.100.53
+ lease 0 4
+!
+ip nat pool CGNAT 192.0.2.129 192.0.2.142 netmask 255.255.255.240
+ip nat inside source list ACL-CGNAT pool CGNAT overload
+ip nat translation timeout 600
+!
+ip route 192.0.2.128 255.255.255.240 Null0 254
+!
+router bgp 64500
+ bgp router-id 10.0.0.22
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ neighbor 10.0.0.11 remote-as 64500
+ neighbor 10.0.0.11 description BR1 RR
+ neighbor 10.0.0.11 update-source Loopback0
+ neighbor 10.0.0.12 remote-as 64500
+ neighbor 10.0.0.12 description BR2 RR
+ neighbor 10.0.0.12 update-source Loopback0
+ neighbor 192.0.2.6 remote-as 64600
+ neighbor 192.0.2.6 description CUST
+ neighbor 2001:db8:100:f002::2 remote-as 64600
+ neighbor 2001:db8:100:f002::2 description CUST IPv6
+ !
+ address-family ipv4
+  network 192.0.2.128 mask 255.255.255.240
+  neighbor 10.0.0.11 activate
+  neighbor 10.0.0.11 send-community
+  neighbor 10.0.0.11 next-hop-self
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community
+  neighbor 10.0.0.12 next-hop-self
+  neighbor 192.0.2.6 activate
+  neighbor 192.0.2.6 default-originate
+  neighbor 192.0.2.6 prefix-list PL-NONE out
+  neighbor 192.0.2.6 route-map RM-CUST-IN in
+  neighbor 192.0.2.6 maximum-prefix 10 90
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:100:100::/64
+  network 2001:db8:100:200::/64
+  neighbor 10.0.0.11 activate
+  neighbor 10.0.0.11 send-community
+  neighbor 10.0.0.11 send-label
+  neighbor 10.0.0.11 next-hop-self
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community
+  neighbor 10.0.0.12 send-label
+  neighbor 10.0.0.12 next-hop-self
+  neighbor 2001:db8:100:f002::2 activate
+  neighbor 2001:db8:100:f002::2 default-originate
+  neighbor 2001:db8:100:f002::2 prefix-list PL6-NONE out
+  neighbor 2001:db8:100:f002::2 route-map RM6-CUST-IN in
+  neighbor 2001:db8:100:f002::2 maximum-prefix 10 90
+ exit-address-family
+ !
+ address-family vpnv4
+  neighbor 10.0.0.11 activate
+  neighbor 10.0.0.11 send-community extended
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community extended
+ exit-address-family
+ !
+ address-family ipv4 vrf CORP
+  neighbor 172.31.0.6 remote-as 65001
+  neighbor 172.31.0.6 description CE-B
+  neighbor 172.31.0.6 activate
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+ login authentication CONSOLE
+line vty 0 4
+ login authentication VTY
+ authorization exec VTY
+ transport input telnet
+!
+end

@@ -1,0 +1,29 @@
+hostname CE-A
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+!
+interface Loopback1
+ description LAN site A
+ ip address 172.16.1.1 255.255.255.0
+ ip ospf network point-to-point
+!
+interface Ethernet0/0
+ description to ISP PE1
+ ip address 172.31.0.2 255.255.255.252
+ no shutdown
+!
+router ospf 1
+ router-id 172.16.1.1
+ network 172.16.1.0 0.0.0.255 area 0
+ network 172.31.0.0 0.0.0.3 area 0
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+line vty 0 4
+ login
+ transport input telnet
+!
+end

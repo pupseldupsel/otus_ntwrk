@@ -14,3 +14,5 @@
 11. [VPN: GRE и DMVPN](lab11/)
 12. [IPSec over GRE и DMVPN, PKI](lab12/)
 13. [MPLS: BGP free core](lab13/)
+
+**[Проектная работа: организация сети интернет-сервис-провайдера](project/)**

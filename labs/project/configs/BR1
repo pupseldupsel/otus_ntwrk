@@ -1,0 +1,187 @@
+hostname BR1
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+ipv6 unicast-routing
+ipv6 cef
+!
+aaa new-model
+aaa authentication login CONSOLE none
+aaa authentication login VTY local
+aaa authorization exec VTY local
+username admin privilege 15 secret otus
+!
+mpls label protocol ldp
+mpls ldp router-id Loopback0 force
+!
+interface Loopback0
+ description Router-ID / iBGP / LDP
+ ip address 10.0.0.11 255.255.255.255
+ ipv6 address 2001:db8:100:ffff::11/128
+!
+interface Ethernet0/0
+ description core to P1
+ ip address 10.1.0.2 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+interface Ethernet0/2
+ description core to BR2
+ ip address 10.1.0.29 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+router isis ISP
+ net 49.0001.0000.0000.0011.00
+ is-type level-2-only
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+!
+ntp source Loopback0
+ntp master 3
+ntp peer 10.0.0.12
+!
+interface Ethernet0/1
+ description eBGP to UP1 AS64510
+ ip address 198.18.0.2 255.255.255.252
+ ipv6 address 2001:db8:510:1::2/64
+ no shutdown
+!
+ip route 192.0.2.0 255.255.255.0 Null0 254
+ipv6 route 2001:db8:100::/48 Null0 254
+!
+ip bgp-community new-format
+ip community-list standard CL-CUSTOMER permit 64500:100
+!
+ip prefix-list PL-OWN seq 5 permit 192.0.2.0/24
+!
+ip prefix-list PL-UP-IN seq 5 deny 0.0.0.0/8 le 32
+ip prefix-list PL-UP-IN seq 10 deny 10.0.0.0/8 le 32
+ip prefix-list PL-UP-IN seq 15 deny 100.64.0.0/10 le 32
+ip prefix-list PL-UP-IN seq 20 deny 127.0.0.0/8 le 32
+ip prefix-list PL-UP-IN seq 25 deny 169.254.0.0/16 le 32
+ip prefix-list PL-UP-IN seq 30 deny 172.16.0.0/12 le 32
+ip prefix-list PL-UP-IN seq 35 deny 192.168.0.0/16 le 32
+ip prefix-list PL-UP-IN seq 40 deny 192.0.2.0/24 le 32
+ip prefix-list PL-UP-IN seq 45 deny 203.0.113.0/24 le 32
+ip prefix-list PL-UP-IN seq 50 deny 224.0.0.0/3 le 32
+ip prefix-list PL-UP-IN seq 100 permit 0.0.0.0/0 le 24
+!
+ipv6 prefix-list PL6-OWN seq 5 permit 2001:db8:100::/48
+!
+ipv6 prefix-list PL6-UP-IN seq 5 deny 2001:db8:100::/48 le 128
+ipv6 prefix-list PL6-UP-IN seq 10 deny 2001:db8:600::/48 le 128
+ipv6 prefix-list PL6-UP-IN seq 15 deny fc00::/7 le 128
+ipv6 prefix-list PL6-UP-IN seq 20 deny fe80::/10 le 128
+ipv6 prefix-list PL6-UP-IN seq 100 permit ::/0 le 48
+!
+route-map RM-UP1-IN permit 10
+ description from upstream: bogon filter, LP 200
+ match ip address prefix-list PL-UP-IN
+ set local-preference 200
+ set community 64500:200
+!
+route-map RM6-UP1-IN permit 10
+ match ipv6 address prefix-list PL6-UP-IN
+ set local-preference 200
+ set community 64500:200
+!
+route-map RM-UP-OUT permit 10
+ description own aggregate
+ match ip address prefix-list PL-OWN
+route-map RM-UP-OUT permit 20
+ description customer routes
+ match community CL-CUSTOMER
+!
+route-map RM6-UP-OUT permit 10
+ match ipv6 address prefix-list PL6-OWN
+route-map RM6-UP-OUT permit 20
+ match community CL-CUSTOMER
+!
+router bgp 64500
+ bgp router-id 10.0.0.11
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ no bgp default route-target filter
+ neighbor 10.0.0.12 remote-as 64500
+ neighbor 10.0.0.12 description BR2 RR
+ neighbor 10.0.0.12 update-source Loopback0
+ neighbor 10.0.0.21 remote-as 64500
+ neighbor 10.0.0.21 description PE1 RR-client
+ neighbor 10.0.0.21 update-source Loopback0
+ neighbor 10.0.0.22 remote-as 64500
+ neighbor 10.0.0.22 description PE2 RR-client
+ neighbor 10.0.0.22 update-source Loopback0
+ neighbor 198.18.0.1 remote-as 64510
+ neighbor 198.18.0.1 description UP1
+ neighbor 2001:db8:510:1::1 remote-as 64510
+ neighbor 2001:db8:510:1::1 description UP1 IPv6
+ !
+ address-family ipv4
+  network 192.0.2.0 mask 255.255.255.0
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community
+  neighbor 10.0.0.12 next-hop-self
+  neighbor 10.0.0.21 activate
+  neighbor 10.0.0.21 send-community
+  neighbor 10.0.0.21 next-hop-self
+  neighbor 10.0.0.21 route-reflector-client
+  neighbor 10.0.0.22 activate
+  neighbor 10.0.0.22 send-community
+  neighbor 10.0.0.22 next-hop-self
+  neighbor 10.0.0.22 route-reflector-client
+  neighbor 198.18.0.1 activate
+  neighbor 198.18.0.1 route-map RM-UP1-IN in
+  neighbor 198.18.0.1 route-map RM-UP-OUT out
+  neighbor 198.18.0.1 maximum-prefix 1000 90
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:100::/48
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community
+  neighbor 10.0.0.12 send-label
+  neighbor 10.0.0.12 next-hop-self
+  neighbor 10.0.0.21 activate
+  neighbor 10.0.0.21 send-community
+  neighbor 10.0.0.21 send-label
+  neighbor 10.0.0.21 next-hop-self
+  neighbor 10.0.0.21 route-reflector-client
+  neighbor 10.0.0.22 activate
+  neighbor 10.0.0.22 send-community
+  neighbor 10.0.0.22 send-label
+  neighbor 10.0.0.22 next-hop-self
+  neighbor 10.0.0.22 route-reflector-client
+  neighbor 2001:db8:510:1::1 activate
+  neighbor 2001:db8:510:1::1 route-map RM6-UP1-IN in
+  neighbor 2001:db8:510:1::1 route-map RM6-UP-OUT out
+  neighbor 2001:db8:510:1::1 maximum-prefix 1000 90
+ exit-address-family
+ !
+ address-family vpnv4
+  neighbor 10.0.0.12 activate
+  neighbor 10.0.0.12 send-community extended
+  neighbor 10.0.0.21 activate
+  neighbor 10.0.0.21 send-community extended
+  neighbor 10.0.0.21 route-reflector-client
+  neighbor 10.0.0.22 activate
+  neighbor 10.0.0.22 send-community extended
+  neighbor 10.0.0.22 route-reflector-client
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+ login authentication CONSOLE
+line vty 0 4
+ login authentication VTY
+ authorization exec VTY
+ transport input telnet
+!
+end

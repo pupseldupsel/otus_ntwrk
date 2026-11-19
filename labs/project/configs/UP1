@@ -1,0 +1,73 @@
+hostname UP1
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+ipv6 unicast-routing
+ipv6 cef
+!
+interface Loopback1
+ description announced prefix
+ ip address 198.18.255.1 255.255.255.255
+ ipv6 address 2001:db8:510:ffff::1/128
+!
+interface Ethernet0/0
+ description to BR1 (AS64500)
+ ip address 198.18.0.1 255.255.255.252
+ ipv6 address 2001:db8:510:1::1/64
+ no shutdown
+!
+interface Ethernet0/1
+ description to INET
+ ip address 198.18.0.9 255.255.255.252
+ ipv6 address 2001:db8:510:3::1/64
+ no shutdown
+!
+interface Ethernet0/2
+ description to UP2
+ ip address 198.18.0.5 255.255.255.252
+ ipv6 address 2001:db8:510:2::1/64
+ no shutdown
+!
+ip route 198.18.0.0 255.255.255.0 Null0 254
+ipv6 route 2001:db8:510::/48 Null0 254
+!
+router bgp 64510
+ bgp router-id 198.18.255.1
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ neighbor 198.18.0.2 remote-as 64500
+ neighbor 198.18.0.2 description BR1 ISP
+ neighbor 198.18.0.10 remote-as 64999
+ neighbor 198.18.0.10 description INET
+ neighbor 198.18.0.6 remote-as 64520
+ neighbor 198.18.0.6 description UP2
+ neighbor 2001:db8:510:1::2 remote-as 64500
+ neighbor 2001:db8:510:1::2 description BR1 ISP
+ neighbor 2001:db8:510:3::2 remote-as 64999
+ neighbor 2001:db8:510:3::2 description INET
+ neighbor 2001:db8:510:2::2 remote-as 64520
+ neighbor 2001:db8:510:2::2 description UP2
+ !
+ address-family ipv4
+  network 198.18.0.0 mask 255.255.255.0
+  neighbor 198.18.0.2 activate
+  neighbor 198.18.0.10 activate
+  neighbor 198.18.0.6 activate
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:510::/48
+  neighbor 2001:db8:510:1::2 activate
+  neighbor 2001:db8:510:3::2 activate
+  neighbor 2001:db8:510:2::2 activate
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+line vty 0 4
+ login
+ transport input telnet
+!
+end

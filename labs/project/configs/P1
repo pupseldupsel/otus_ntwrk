@@ -1,0 +1,75 @@
+hostname P1
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+ipv6 unicast-routing
+ipv6 cef
+!
+aaa new-model
+aaa authentication login CONSOLE none
+aaa authentication login VTY local
+aaa authorization exec VTY local
+username admin privilege 15 secret otus
+!
+mpls label protocol ldp
+mpls ldp router-id Loopback0 force
+!
+interface Loopback0
+ description Router-ID / iBGP / LDP
+ ip address 10.0.0.1 255.255.255.255
+ ipv6 address 2001:db8:100:ffff::1/128
+!
+interface Ethernet0/0
+ description core to BR1
+ ip address 10.1.0.1 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+interface Ethernet0/1
+ description core to PE1
+ ip address 10.1.0.5 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+interface Ethernet0/2
+ description core to P2
+ ip address 10.1.0.9 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+interface Ethernet0/3
+ description core to PE2
+ ip address 10.1.0.13 255.255.255.252
+ ip router isis ISP
+ isis network point-to-point
+ mpls ip
+ no shutdown
+!
+router isis ISP
+ net 49.0001.0000.0000.0001.00
+ is-type level-2-only
+ metric-style wide
+ log-adjacency-changes
+ passive-interface Loopback0
+!
+ntp source Loopback0
+ntp server 10.0.0.11 prefer
+ntp server 10.0.0.12
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+ login authentication CONSOLE
+line vty 0 4
+ login authentication VTY
+ authorization exec VTY
+ transport input telnet
+!
+end

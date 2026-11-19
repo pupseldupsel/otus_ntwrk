@@ -1,0 +1,33 @@
+hostname CE-B
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+!
+interface Loopback1
+ description LAN site B
+ ip address 172.16.2.1 255.255.255.0
+!
+interface Ethernet0/0
+ description to ISP PE2
+ ip address 172.31.0.6 255.255.255.252
+ no shutdown
+!
+router bgp 65001
+ bgp router-id 172.16.2.1
+ bgp log-neighbor-changes
+ neighbor 172.31.0.5 remote-as 64500
+ !
+ address-family ipv4
+  network 172.16.2.0 mask 255.255.255.0
+  neighbor 172.31.0.5 activate
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+line vty 0 4
+ login
+ transport input telnet
+!
+end

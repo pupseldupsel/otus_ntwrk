@@ -1,0 +1,104 @@
+hostname CUST
+!
+no ip domain-lookup
+service timestamps log datetime msec localtime
+clock timezone MSK 3 0
+ipv6 unicast-routing
+ipv6 cef
+!
+interface Loopback1
+ description announced prefix
+ ip address 203.0.113.1 255.255.255.128
+ ipv6 address 2001:db8:600::1/48
+!
+interface Ethernet0/0
+ description primary to PE1 (AS64500)
+ ip address 192.0.2.2 255.255.255.252
+ ipv6 address 2001:db8:100:f001::2/64
+ no shutdown
+!
+interface Ethernet0/1
+ description backup to PE2 (AS64500)
+ ip address 192.0.2.6 255.255.255.252
+ ipv6 address 2001:db8:100:f002::2/64
+ no shutdown
+!
+ip bgp-community new-format
+ip prefix-list PL-OWN seq 5 permit 203.0.113.0/24
+ipv6 prefix-list PL6-OWN seq 5 permit 2001:db8:600::/48
+!
+route-map RM-BACKUP-OUT permit 10
+ description ask ISP to use this link as backup
+ set community 64500:90
+!
+route-map RM-PRIMARY-IN permit 10
+ set local-preference 200
+!
+interface Loopback2
+ description LAN 2 (goes via backup link by PBR)
+ ip address 203.0.113.129 255.255.255.128
+!
+ip route 203.0.113.0 255.255.255.0 Null0 254
+!
+ip sla 1
+ icmp-echo 192.0.2.5 source-interface Ethernet0/1
+ frequency 5
+ip sla schedule 1 life forever start-time now
+track 1 ip sla 1 reachability
+ delay down 10 up 10
+!
+ip access-list extended ACL-LAN2
+ permit ip 203.0.113.128 0.0.0.127 any
+!
+route-map RM-PBR-LAN2 permit 10
+ description LAN2 -> PE2 link while it is alive
+ match ip address ACL-LAN2
+ set ip next-hop verify-availability 192.0.2.5 1 track 1
+!
+ip local policy route-map RM-PBR-LAN2
+!
+router bgp 64600
+ bgp router-id 203.0.113.1
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ neighbor 192.0.2.1 remote-as 64500
+ neighbor 192.0.2.1 description ISP PE1 primary
+ neighbor 192.0.2.5 remote-as 64500
+ neighbor 192.0.2.5 description ISP PE2 backup
+ neighbor 2001:db8:100:f001::1 remote-as 64500
+ neighbor 2001:db8:100:f001::1 description ISP PE1 primary
+ neighbor 2001:db8:100:f002::1 remote-as 64500
+ neighbor 2001:db8:100:f002::1 description ISP PE2 backup
+ !
+ address-family ipv4
+  network 203.0.113.0 mask 255.255.255.0
+  neighbor 192.0.2.1 activate
+  neighbor 192.0.2.1 send-community
+  neighbor 192.0.2.1 prefix-list PL-OWN out
+  neighbor 192.0.2.1 route-map RM-PRIMARY-IN in
+  neighbor 192.0.2.5 activate
+  neighbor 192.0.2.5 send-community
+  neighbor 192.0.2.5 prefix-list PL-OWN out
+  neighbor 192.0.2.5 route-map RM-BACKUP-OUT out
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:db8:600::/48
+  neighbor 2001:db8:100:f001::1 activate
+  neighbor 2001:db8:100:f001::1 send-community
+  neighbor 2001:db8:100:f001::1 prefix-list PL6-OWN out
+  neighbor 2001:db8:100:f001::1 route-map RM-PRIMARY-IN in
+  neighbor 2001:db8:100:f002::1 activate
+  neighbor 2001:db8:100:f002::1 send-community
+  neighbor 2001:db8:100:f002::1 prefix-list PL6-OWN out
+  neighbor 2001:db8:100:f002::1 route-map RM-BACKUP-OUT out
+ exit-address-family
+!
+line con 0
+ logging synchronous
+ exec-timeout 0 0
+line vty 0 4
+ login
+ transport input telnet
+!
+end
