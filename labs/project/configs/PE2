@@ -245,6 +245,7 @@ router bgp 64500
   neighbor 10.0.0.12 send-community
   neighbor 10.0.0.12 next-hop-self
   neighbor 192.0.2.6 activate
+  neighbor 192.0.2.6 advertisement-interval 0
   neighbor 192.0.2.6 default-originate route-map RM-DEFAULT-COND
   neighbor 192.0.2.6 prefix-list PL-NONE out
   neighbor 192.0.2.6 route-map RM-CUST-IN in
@@ -263,6 +264,7 @@ router bgp 64500
   neighbor 10.0.0.12 send-label
   neighbor 10.0.0.12 next-hop-self
   neighbor 2001:db8:100:f002::2 activate
+  neighbor 2001:db8:100:f002::2 advertisement-interval 0
   neighbor 2001:db8:100:f002::2 default-originate route-map RM6-DEFAULT-COND
   neighbor 2001:db8:100:f002::2 prefix-list PL6-NONE out
   neighbor 2001:db8:100:f002::2 route-map RM6-CUST-IN in
