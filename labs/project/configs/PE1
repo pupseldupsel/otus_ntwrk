@@ -26,6 +26,7 @@ interface Ethernet0/0
  ip router isis ISP
  isis network point-to-point
  mpls ip
+ bfd interval 300 min_rx 300 multiplier 3
  no shutdown
 !
 interface Ethernet0/1
@@ -34,6 +35,7 @@ interface Ethernet0/1
  ip router isis ISP
  isis network point-to-point
  mpls ip
+ bfd interval 300 min_rx 300 multiplier 3
  no shutdown
 !
 router isis ISP
@@ -42,6 +44,7 @@ router isis ISP
  metric-style wide
  log-adjacency-changes
  passive-interface Loopback0
+ bfd all-interfaces
 !
 ntp source Loopback0
 ntp server 10.0.0.11 prefer
@@ -54,6 +57,16 @@ ip prefix-list PL-CUST-AS64600 seq 5 permit 203.0.113.0/24
 ip prefix-list PL-NONE seq 5 deny 0.0.0.0/0 le 32
 ipv6 prefix-list PL6-CUST-AS64600 seq 5 permit 2001:db8:600::/48
 ipv6 prefix-list PL6-NONE seq 5 deny ::/0 le 128
+!
+ip prefix-list PL-UPSTREAM-CHECK seq 5 permit 198.51.100.0/24
+ipv6 prefix-list PL6-UPSTREAM-CHECK seq 5 permit 2001:db8:999::/48
+!
+route-map RM-DEFAULT-COND permit 10
+ description default to customer only while internet is reachable
+ match ip address prefix-list PL-UPSTREAM-CHECK
+!
+route-map RM6-DEFAULT-COND permit 10
+ match ipv6 address prefix-list PL6-UPSTREAM-CHECK
 !
 route-map RM-CUST-IN permit 10
  description customer asked for backup (community 64500:90)
@@ -123,7 +136,7 @@ router bgp 64500
   neighbor 10.0.0.12 send-community
   neighbor 10.0.0.12 next-hop-self
   neighbor 192.0.2.2 activate
-  neighbor 192.0.2.2 default-originate
+  neighbor 192.0.2.2 default-originate route-map RM-DEFAULT-COND
   neighbor 192.0.2.2 prefix-list PL-NONE out
   neighbor 192.0.2.2 route-map RM-CUST-IN in
   neighbor 192.0.2.2 maximum-prefix 10 90
@@ -139,7 +152,7 @@ router bgp 64500
   neighbor 10.0.0.12 send-label
   neighbor 10.0.0.12 next-hop-self
   neighbor 2001:db8:100:f001::2 activate
-  neighbor 2001:db8:100:f001::2 default-originate
+  neighbor 2001:db8:100:f001::2 default-originate route-map RM6-DEFAULT-COND
   neighbor 2001:db8:100:f001::2 prefix-list PL6-NONE out
   neighbor 2001:db8:100:f001::2 route-map RM6-CUST-IN in
   neighbor 2001:db8:100:f001::2 maximum-prefix 10 90

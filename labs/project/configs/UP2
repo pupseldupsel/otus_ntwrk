@@ -15,6 +15,7 @@ interface Ethernet0/0
  description to BR2 (AS64500)
  ip address 198.19.0.1 255.255.255.252
  ipv6 address 2001:db8:520:1::1/64
+ bfd interval 300 min_rx 300 multiplier 3
  no shutdown
 !
 interface Ethernet0/1
@@ -38,12 +39,14 @@ router bgp 64520
  no bgp default ipv4-unicast
  neighbor 198.19.0.2 remote-as 64500
  neighbor 198.19.0.2 description BR2 ISP
+ neighbor 198.19.0.2 fall-over bfd
  neighbor 198.19.0.6 remote-as 64999
  neighbor 198.19.0.6 description INET
  neighbor 198.18.0.5 remote-as 64510
  neighbor 198.18.0.5 description UP1
  neighbor 2001:db8:520:1::2 remote-as 64500
  neighbor 2001:db8:520:1::2 description BR2 ISP
+ neighbor 2001:db8:520:1::2 fall-over bfd
  neighbor 2001:db8:520:3::2 remote-as 64999
  neighbor 2001:db8:520:3::2 description INET
  neighbor 2001:db8:510:2::1 remote-as 64510
