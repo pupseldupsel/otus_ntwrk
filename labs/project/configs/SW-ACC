@@ -28,14 +28,14 @@ interface Ethernet0/1
  description VPC1
  switchport mode access
  switchport access vlan 100
- spanning-tree portfast edge
+ spanning-tree portfast
  no shutdown
 !
 interface Ethernet0/2
  description VPC2
  switchport mode access
  switchport access vlan 200
- spanning-tree portfast edge
+ spanning-tree portfast
  no shutdown
 !
 line con 0
